@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <style>
+      .tile { stroke:#415779; stroke-width:8; rx:90; ry:90; }
+    </style>
+  </defs>
+  <rect x="26" y="26" width="972" height="972" rx="120" ry="120" fill="#0A1226" stroke="#415779" stroke-width="10"/>
+  <rect class="tile" x="112" y="112" width="360" height="360" fill="#14223C" />
+  <rect class="tile" x="552" y="112" width="360" height="360" fill="#101C34" />
+  <rect class="tile" x="112" y="552" width="360" height="360" fill="#101C34" />
+  <rect class="tile" x="552" y="552" width="360" height="360" fill="#14223C" />
+  <!-- Glyphs -->
+  <g stroke="#00CDC0" stroke-width="40" stroke-linecap="round" fill="none">
+    <polyline points="250,220 332,292 250,364"/>
+    <line x1="360" y1="370" x2="440" y2="370"/>
+    <polyline points="690,220 772,292 690,364"/>
+    <line x1="800" y1="370" x2="880" y2="370"/>
+    <polyline points="250,660 332,732 250,804"/>
+    <line x1="360" y1="810" x2="440" y2="810"/>
+    <polyline points="690,660 772,732 690,804"/>
+    <line x1="800" y1="810" x2="880" y2="810"/>
+  </g>
+</svg>

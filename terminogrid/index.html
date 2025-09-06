@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TerminoGrid</title>
+
+    <!-- 
+      // ANSI Terminal Renderer – Fixed Configuration
+      // 
+      // This terminal implementation provides:
+      // - ANSI rendering ALWAYS ACTIVE (no mode switching)
+      // - Ubuntu Mono font with fallbacks: "DejaVu Sans Mono", Menlo, Consolas, monospace
+      // - Fixed Tango Dark 16-color palette
+      // - Bold formatting doesn't change brightness (bold ≠ bright)
+      // - SGR support: 0,1,3,4,9,22,23,24,29 (reset, bold, italic, underline, strike)
+      // - Colors: FG 30-37,90-97, BG 40-47,100-107, 256-color 38;5;n/48;5;n, RGB 38;2;r;g;b/48;2;r;g;b
+      // - Control chars: \n, \r (carriage return for progress bars), \b (backspace)
+      // - Performance: Batched updates (16ms), buffer limits (5000 lines/4MB), FIFO drop
+      // - WebSocket binary frames preserve raw ANSI sequences
+      //
+      // Tango Dark Palette:
+      // Default FG: #d3d7cf, Default BG: #2e3436
+      // 0-7: #2e3436,#cc0000,#4e9a06,#c4a000,#3465a4,#75507b,#06989a,#d3d7cf
+      // 8-15: #555753,#ef2929,#8ae234,#fce94f,#729fcf,#ad7fa8,#34e2e2,#eeeeec
+    -->
+    <!-- Normalize to align browser defaults -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/modern-normalize/modern-normalize.min.css"
+    />
+    <!-- Web font for consistent typography across platforms -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Ubuntu+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Brand icons (prefer dark variant for better contrast in tabs) -->
+    <link
+      rel="apple-touch-icon"
+      sizes="1024x1024"
+      href="brand/terminogrid_icon_light_1024.png"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="brand/terminogrid_icon_dark.svg"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="brand/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="brand/favicon-16x16.png"
+    />
+    <link rel="manifest" href="brand/site.webmanifest" />
+    <link rel="mask-icon" href="brand/safari-pinned-tab.svg" color="#2b8ef9" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="theme-color" content="#0f172a" />
+    <style>
+      :root {
+        /* 🧠 Eye-Comfort Base Colors - Warmer, less blue light */
+        --bg-base: #1a1f2e;
+        --bg-base-rgb: 26, 31, 46;
+        --bg-surface: #212738;
+        --bg-elevated: #2a3142;
+
+        /* ANSI Colors – Gruvbox Dark Soft (matte) */
+        --ansi-0: #1d2021; /* Black */
+        --ansi-1: #cc241d; /* Red */
+        --ansi-2: #98971a; /* Green */
+        --ansi-3: #d79921; /* Yellow */
+        --ansi-4: #458588; /* Blue */
+        --ansi-5: #b16286; /* Magenta */
+        --ansi-6: #689d6a; /* Cyan */
+        --ansi-7: #d5c4a1; /* White (muted) */
+        --ansi-8: #928374; /* Bright Black */
+        --ansi-9: #fb4934; /* Bright Red */
+        --ansi-10: #b8bb26; /* Bright Green */
+        --ansi-11: #fabd2f; /* Bright Yellow */
+        --ansi-12: #83a598; /* Bright Blue */
+        --ansi-13: #d3869b; /* Bright Magenta */
+        --ansi-14: #8ec07c; /* Bright Cyan */
+        --ansi-15: #ebdbb2; /* Bright White (cream, still muted) */
+
+        /* 🎯 High-Contrast Text (WCAG AAA 7:1+) */
+        --text-primary: #f8fafc; /* 15.3:1 contrast ratio */
+        --text-secondary: #e2e8f0; /* Enhanced to 11.2:1 for ≥4.5:1 compliance */
+        --text-muted: #94a3b8; /* 5.8:1 contrast ratio */
+        --text-inverse: #1e293b;
+
+        /* 🎨 Semantic Colors - Eye-friendly & high contrast */
+        --success: #10b981; /* Warmer green, less harsh */
+        --success-bg: rgba(16, 185, 129, 0.1);
+        --danger: #f87171; /* Softer red, less aggressive */
+        --danger-bg: rgba(248, 113, 113, 0.1);
+        --warning: #fbbf24; /* High-contrast amber */
+        --warning-bg: rgba(251, 191, 36, 0.1);
+        --info: #60a5fa; /* Warmer, more accessible blue */
+        --info-bg: rgba(96, 165, 250, 0.1);
+
+        /* 🔥 Enhanced Brand Colors */
+        --brand-primary: #3b82f6; /* More accessible blue */
+        --brand-secondary: #8b5cf6; /* Purple accent */
+        --brand-accent: #06b6d4; /* Cyan accent */
+        --brand-bg: rgba(59, 130, 246, 0.1);
+
+        /* 💫 Interactive States - Better feedback */
+        --interactive-hover: rgba(59, 130, 246, 0.15);
+        --interactive-active: rgba(59, 130, 246, 0.25);
+        --interactive-focus: #3b82f6;
+        --interactive-focus-ring: rgba(59, 130, 246, 0.3);
+
+        /* 📏 Enhanced Spacing System (8px grid) */
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        --spacing-2xl: 48px;
+
+        /* 🎯 Touch-Friendly Targets */
+        --target-min: 44px; /* Minimum touch target */
+        --target-comfortable: 48px; /* Comfortable size */
+        --target-large: 56px; /* Large interactive elements */
+
+        /* 🎭 Visual Effects - Refined */
+        --blur-subtle: 8px;
+        --blur-medium: 12px;
+        --blur-strong: 16px;
+        --saturation: 1.1; /* Reduced saturation for eye comfort */
+
+        /* ⚡ Animation System */
+        --duration-fast: 150ms;
+        --duration-normal: 250ms;
+        --duration-slow: 350ms;
+        --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+        --ease-out: cubic-bezier(0, 0, 0.2, 1);
+        --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+        /* 🎨 Surface System */
+        --surface-base: var(--bg-base);
+        --surface-raised: var(--bg-surface);
+        --surface-overlay: var(--bg-elevated);
+        --surface-glass: rgba(var(--bg-base-rgb), 0.7);
+
+        /* 🖼️ Border System */
+        --border-subtle: rgba(248, 250, 252, 0.08);
+        --border-default: rgba(248, 250, 252, 0.12);
+        --border-strong: rgba(248, 250, 252, 0.18);
+        --border-focus: var(--brand-primary);
+        --line-hi: rgba(255, 255, 255, 0.1); /* Enhanced highlight borders */
+
+        /* 📐 Border Radius System */
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+        --radius-full: 9999px;
+
+        /* 🔤 Typography Scale (1.25 ratio) */
+        --font-size-xs: 12px;
+        --font-size-sm: 14px;
+        --font-size-base: 16px;
+        --font-size-lg: 18px;
+        --font-size-xl: 20px;
+        --font-size-2xl: 24px;
+        --font-size-3xl: 30px;
+
+        /* 📏 Line Heights */
+        --line-height-tight: 1.25;
+        --line-height-normal: 1.5;
+        --line-height-relaxed: 1.75;
+
+        /* Legacy compatibility */
+        --terminal-bg: var(--surface-glass);
+        --surface-panel: var(--surface-raised);
+
+        /* Aliases for backward compatibility */
+        --text: var(--text-primary);
+        --muted: var(--text-muted);
+        --ok: var(--success);
+        --bad: var(--danger);
+        --warn: var(--warning);
+        --brand: var(--brand-primary);
+        --line: var(--border-default);
+        --gap: 12px; /* Standardized to 12px */
+        --radius: var(--radius-md);
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg-base);
+        color: var(--text-primary);
+        font-family: Inter, "SF Pro Display", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+
+        /* Reduced motion support */
+        scroll-behavior: smooth;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        body {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      /* 🎯 Enhanced Header - Better visual hierarchy */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: var(--target-large);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--spacing-lg);
+        background: var(--surface-raised);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: saturate(var(--saturation)) blur(var(--blur-medium));
+        transition: all var(--duration-fast) var(--ease-out);
+      }
+      /* Centered top icon (swallow) */
+      .center-icon {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 100%;
+        display: grid;
+        place-items: center;
+        pointer-events: none; /* don't block header actions */
+      }
+      .center-icon img {
+        height: 44px; /* doubled size */
+        width: auto;
+        opacity: 0.95;
+        filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+      }
+
+      /* 🏷️ Enhanced Brand Section */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        font-weight: 700;
+      }
+      .brand .wm {
+        display: none;
+      }
+      /* 🎨 Enhanced Brand Title */
+      .brand .title {
+        position: relative;
+        display: inline-block;
+        font-weight: 800;
+        font-size: var(--font-size-xl);
+        letter-spacing: 0.025em;
+        color: var(--text-primary);
+      }
+      .brand .title .accent {
+        color: var(--brand-primary);
+        text-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
+      }
+      .brand .title::before {
+        content: "";
+        position: absolute;
+        left: -8px;
+        right: -8px;
+        height: 2px;
+        top: -8px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--brand-primary) 30%,
+          var(--brand-accent) 70%,
+          transparent 100%
+        );
+        border-radius: var(--radius-sm);
+        opacity: 0.7;
+      }
+      /* 🎯 Enhanced Status Indicators */
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--success);
+        border: 2px solid var(--surface-base);
+        box-shadow: 0 0 0 1px var(--border-default);
+        transition: all var(--duration-fast) var(--ease-out);
+      }
+
+      .dot.running {
+        background: var(--success);
+        box-shadow: 0 0 0 1px var(--success), 0 0 8px rgba(16, 185, 129, 0.3);
+      }
+
+      .dot.stopped {
+        background: var(--danger);
+        box-shadow: 0 0 0 1px var(--danger), 0 0 8px rgba(248, 113, 113, 0.3);
+      }
+
+      /* 📝 Enhanced Text Hierarchy */
+      .hint {
+        color: var(--muted);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+      }
+      .hint.warn {
+        color: var(--warn);
+        font-weight: 600;
+      }
+      /* 📐 Enhanced Layout System */
+      .wrap {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: var(--gap);
+        padding: var(--gap);
+        height: calc(100% - var(--target-large));
+        background: var(--bg-base);
+      }
+
+      /* 📱 Enhanced Panel System */
+      aside,
+      main {
+        background: var(--surface-raised);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        min-height: 0;
+        backdrop-filter: saturate(var(--saturation)) blur(var(--blur-medium));
+        transition: all var(--duration-normal) var(--ease-out);
+        box-shadow: var(--shadow);
+      }
+
+      aside:hover,
+      main:hover {
+        border-color: var(--border-strong);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 📋 Enhanced Sidebar */
+      aside {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .aside-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-overlay);
+        font-weight: 700;
+        font-size: var(--font-size-base);
+        color: var(--text-primary);
+      }
+      /* 📦 Enhanced Container List */
+      .list {
+        overflow: auto;
+        padding: var(--gap);
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+      }
+
+      /* 🎴 Enhanced Container Cards */
+      .row {
+        background: var(--surface-overlay);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        transition: all var(--duration-normal) var(--ease-out);
+        cursor: pointer;
+      }
+
+      .row:hover {
+        background: var(--surface-raised);
+        border-color: var(--border-strong);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .row:focus-within {
+        border-color: var(--interactive-focus);
+        box-shadow: 0 0 0 3px var(--interactive-focus-ring);
+      }
+
+      .row .top {
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--spacing-sm);
+      }
+      .row .name {
+        font-weight: 700;
+        font-size: var(--font-size-base);
+        color: var(--text-primary);
+      }
+      .row .img {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .row .meta {
+        font-size: var(--font-size-xs);
+        color: var(--muted);
+        margin-top: var(--spacing-sm);
+        line-height: var(--line-height-relaxed);
+      }
+
+      /* 🏷️ Enhanced Status Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-full);
+        border: 1px solid transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: var(--spacing-sm);
+        transition: all var(--duration-fast) var(--ease-out);
+      }
+      .badge.r {
+        color: var(--success);
+        background: var(--success-bg);
+        border-color: var(--success);
+      }
+      .badge.s {
+        color: var(--danger);
+        background: var(--danger-bg);
+        border-color: var(--danger);
+      }
+      .badge.p {
+        color: var(--warning);
+        background: var(--warning-bg);
+        border-color: var(--warning);
+      }
+      /* ⚡ Enhanced Action Controls */
+      .actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        margin-top: var(--spacing-md);
+      }
+
+      /* 🎯 Enhanced Button System - Touch-friendly */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--target-min);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--surface-overlay);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: var(--font-size-sm);
+        cursor: pointer;
+        transition: all var(--duration-fast) var(--ease-out);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      /* Zoom and Fullscreen Controls */
+      .zoom-controls {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: center;
+      }
+      .zoom-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        display: grid;
+        place-items: center;
+        color: var(--text-muted);
+        cursor: pointer;
+        background: var(--surface-overlay);
+        border: 1px solid var(--line);
+        font-size: 18px;
+        transition: all var(--duration-fast) var(--ease-out);
+      }
+      .zoom-btn:hover {
+        background: var(--interactive-hover);
+        color: var(--text-primary);
+      }
+      .zoom-level {
+        min-width: 50px;
+        text-align: center;
+        font-size: var(--font-size-xs);
+        color: var(--text-muted);
+      }
+      .zoom-fs {
+        margin-left: var(--spacing-sm);
+      }
+
+      .btn:hover {
+        background: var(--interactive-hover);
+        border-color: var(--brand-primary);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn:focus-visible {
+        outline: 2px solid var(--interactive-focus);
+        outline-offset: 2px;
+        border-color: var(--interactive-focus);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn:disabled:hover {
+        background: var(--surface-overlay);
+        border-color: var(--border-default);
+        transform: none;
+      }
+
+      /* 🎨 Enhanced Button Variants - Hierarchical Design */
+      .btn.primary {
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+        color: white;
+        font-weight: 700;
+      }
+
+      .btn.primary:hover {
+        background: var(--brand-secondary);
+        border-color: var(--brand-secondary);
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+      }
+
+      /* Tiles */
+      main {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .main-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .grid {
+        --cols: 1;
+        flex: 1;
+        overflow: auto;
+        padding: var(--gap);
+        display: grid;
+        gap: var(--gap);
+        /* JS sets --cols based on container width and MIN_TILE_W */
+        grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+        align-content: start;
+      }
+      .tile {
+        background: var(--surface-overlay);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        min-height: 450px; /* minimum height */
+        transition: all var(--duration-normal) var(--ease-out);
+      }
+      .tile-head {
+        padding: var(--spacing-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        user-select: none;
+        cursor: zoom-in;
+      }
+      .tile-head h5 {
+        margin: 0;
+        font-size: var(--font-size-base);
+        font-weight: 700;
+      }
+      .tile-head .x {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .tile-head .x:hover {
+        background: var(--interactive-hover);
+        color: var(--text-primary);
+      }
+      .tile-body {
+        padding: var(--spacing-md);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+      }
+      .dot-s {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      .ok {
+        background: var(--ok);
+      }
+      .bad {
+        background: var(--bad);
+      }
+      .muted {
+        color: var(--text-muted);
+      }
+      /* Fullscreen tile */
+      .fullscreen {
+        position: fixed;
+        inset: 10px;
+        z-index: 50;
+        border-radius: var(--radius-xl);
+        background: var(--surface-base);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      }
+      .fullscreen .tile-head {
+        cursor: zoom-out;
+      }
+      /* Toast */
+      #toast {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 80;
+        background: var(--surface-overlay);
+        border: 1px solid var(--line);
+        color: var(--text-primary);
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 150ms ease-out, transform 150ms ease-out;
+        pointer-events: none;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* Shell modal (simple, no external libs) */
+      .shell {
+        position: fixed;
+        inset: 0;
+        background: rgba(var(--bg-base-rgb), 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 90;
+      }
+      .shell.open {
+        display: flex;
+      }
+      .shell-card {
+        width: min(1100px, 96vw);
+        height: min(720px, 90vh);
+        background: var(--surface-raised);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      .shell-bar {
+        padding: var(--spacing-md);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+      .shell-bar .right {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .term-wrap {
+        padding: var(--spacing-sm);
+        height: 100%;
+      }
+      .term-screen {
+        height: 100%;
+        width: 100%;
+        overflow: auto;
+        color: #d5c4a1; /* Gruvbox muted fg */
+        background: #1d2021; /* Gruvbox bg0 */
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-default);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-family: "Ubuntu Mono", "DejaVu Sans Mono", Menlo, Consolas,
+          monospace;
+        /* Better readability for long sessions */
+        font-size: 16px;
+        line-height: 1.6;
+        font-weight: 600;
+        -webkit-font-smoothing: subpixel-antialiased;
+        text-rendering: optimizeLegibility;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      /* ANSI Renderer Styles */
+      .ansi {
+        display: inline;
+      }
+      .ansi.bold {
+        font-weight: bold;
+      }
+      .ansi.italic {
+        font-style: italic;
+      }
+      .ansi.underline {
+        text-decoration: underline;
+      }
+      .ansi.strike {
+        text-decoration: line-through;
+      }
+
+      /* Foreground Colors */
+      .ansi.fg-0 {
+        color: var(--ansi-0);
+      }
+      .ansi.fg-1 {
+        color: var(--ansi-1);
+      }
+      .ansi.fg-2 {
+        color: var(--ansi-2);
+      }
+      .ansi.fg-3 {
+        color: var(--ansi-3);
+      }
+      .ansi.fg-4 {
+        color: var(--ansi-4);
+      }
+      .ansi.fg-5 {
+        color: var(--ansi-5);
+      }
+      .ansi.fg-6 {
+        color: var(--ansi-6);
+      }
+      .ansi.fg-7 {
+        color: var(--ansi-7);
+      }
+      .ansi.fg-8 {
+        color: var(--ansi-8);
+      }
+      .ansi.fg-9 {
+        color: var(--ansi-9);
+      }
+      .ansi.fg-10 {
+        color: var(--ansi-10);
+      }
+      .ansi.fg-11 {
+        color: var(--ansi-11);
+      }
+      .ansi.fg-12 {
+        color: var(--ansi-12);
+      }
+      .ansi.fg-13 {
+        color: var(--ansi-13);
+      }
+      .ansi.fg-14 {
+        color: var(--ansi-14);
+      }
+      .ansi.fg-15 {
+        color: var(--ansi-15);
+      }
+
+      /* Background Colors */
+      .ansi.bg-0 {
+        background-color: var(--ansi-0);
+      }
+      .ansi.bg-1 {
+        background-color: var(--ansi-1);
+      }
+      .ansi.bg-2 {
+        background-color: var(--ansi-2);
+      }
+      .ansi.bg-3 {
+        background-color: var(--ansi-3);
+      }
+      .ansi.bg-4 {
+        background-color: var(--ansi-4);
+      }
+      .ansi.bg-5 {
+        background-color: var(--ansi-5);
+      }
+      .ansi.bg-6 {
+        background-color: var(--ansi-6);
+      }
+      .ansi.bg-7 {
+        background-color: var(--ansi-7);
+      }
+      .ansi.bg-8 {
+        background-color: var(--ansi-8);
+      }
+      .ansi.bg-9 {
+        background-color: var(--ansi-9);
+      }
+      .ansi.bg-10 {
+        background-color: var(--ansi-10);
+      }
+      .ansi.bg-11 {
+        background-color: var(--ansi-11);
+      }
+      .ansi.bg-12 {
+        background-color: var(--ansi-12);
+      }
+      .ansi.bg-13 {
+        background-color: var(--ansi-13);
+      }
+      .ansi.bg-14 {
+        background-color: var(--ansi-14);
+      }
+      .ansi.bg-15 {
+        background-color: var(--ansi-15);
+      }
+      /* xterm host in modal: no padding/whitespace tricks inside */
+      #termHost.term-screen {
+        padding: 0;
+        white-space: normal;
+        word-break: normal;
+      }
+      #termHost .xterm {
+        height: 100%;
+      }
+      /* Enforce Ubuntu Mono font for xterm.js */
+      .xterm-rows {
+        font-family: "Ubuntu Mono", "DejaVu Sans Mono", Menlo, Consolas,
+          monospace !important;
+        /* Heavier strokes for improved readability */
+        font-weight: 600 !important;
+        font-size: 19px !important; /* align with xterm option */
+        line-height: 1.25 !important;
+        -webkit-font-smoothing: subpixel-antialiased;
+      }
+
+      /* Nur Terminalflächen – Rest der UI bleibt unverändert */
+      .tile-body .xterm,
+      .xterm-viewport,
+      .xterm-screen {
+        background: #1d2021 !important;
+      }
+      .tile-body .xterm {
+        padding: 4px 8px;
+      }
+      .tile-body .xterm * {
+        font-style: normal !important; /* keine Kursive */
+      }
+
+      /* Vignette/Glass/Shadow im Terminal konsequent abschalten */
+      .terminal-container::before,
+      .terminal-container::after {
+        content: none !important;
+      }
+      .terminal-container,
+      .tile-body .terminal,
+      .xterm-viewport {
+        background-image: none !important;
+        box-shadow: none !important;
+        filter: none !important;
+        backdrop-filter: none !important;
+      }
+      .term-input {
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        width: 0;
+        height: 0;
+        opacity: 0;
+      }
+      /* Terminal host inside tiles */
+      .tile .tile-term-host {
+        min-height: 360px;
+        height: 360px;
+        background: var(--surface-base);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        margin-top: var(--spacing-sm);
+      }
+      .tile.fullscreen .tile-term-host {
+        height: calc(100vh - 180px);
+      }
+
+      /* 🌟 Enhanced Accessibility & Focus System */
+      *:focus-visible {
+        outline: 3px solid var(--interactive-focus);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+
+      /* 📱 Touch-friendly spacing for mobile */
+      @media (max-width: 768px) {
+        .wrap {
+          grid-template-columns: 1fr;
+          gap: var(--spacing-md);
+          padding: var(--spacing-md);
+        }
+        aside {
+          order: 2;
+        }
+        main {
+          order: 1;
+        }
+      }
+
+      /* 🌙 High Contrast Mode Support */
+      @media (prefers-contrast: high) {
+        :root {
+          --border-default: rgba(255, 255, 255, 0.3);
+          --border-strong: rgba(255, 255, 255, 0.5);
+          --text-primary: #ffffff;
+          --text-secondary: #e2e8f0;
+        }
+      }
+    </style>
+    <!-- xterm.js for proper terminal emulation -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="title"
+          ><span class="accent">T</span>ermino<span class="accent">G</span
+          >rid</span
+        >
+        <span class="hint" style="color: var(--text-muted)">swallow</span>
+      </div>
+      <!-- Centered swallow icon for this "swallow" edition -->
+      <div class="center-icon" aria-hidden="true">
+        <img src="brand/swallow.svg" alt="Swallow" />
+      </div>
+    </header>
+
+    <div class="wrap">
+      <!-- Sidebar -->
+      <aside>
+        <div class="aside-head">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <div>Containers</div>
+            <div class="hint" style="margin-top: 1px">Auto‑refresh: 5s</div>
+          </div>
+          <div id="counter" class="hint">–</div>
+        </div>
+        <div id="list" class="list" aria-live="polite"></div>
+      </aside>
+
+      <!-- Main -->
+      <main>
+        <div class="main-head">
+          <div class="hint" id="modeHint"></div>
+          <div class="zoom-controls">
+            <div class="zoom-btn" id="zoomOut" title="Zoom Out">−</div>
+            <div class="zoom-level" id="zoomLevel">100%</div>
+            <div class="zoom-btn" id="zoomIn" title="Zoom In">+</div>
+            <div
+              class="zoom-btn zoom-fs"
+              id="fsToggle"
+              title="Toggle Fullscreen"
+            >
+              ⛶
+            </div>
+          </div>
+        </div>
+        <div id="grid" class="grid"></div>
+      </main>
+    </div>
+
+    <!-- Shell modal -->
+    <div class="shell" id="shell">
+      <div class="shell-card">
+        <div class="shell-bar">
+          <strong id="shellTitle">Shell</strong>
+          <div class="right">
+            <button id="btnCloseShell" class="btn">Close</button>
+          </div>
+        </div>
+        <div class="term-wrap">
+          <div id="termHost" class="term-screen"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      // ------------------------------ Utilities (English comments) ------------------------------
+      const $ = (s, r = document) => r.querySelector(s);
+      const qs = (k) => new URLSearchParams(location.search).get(k);
+
+      // Zoom and Fullscreen controls
+      let zoomLevel = 100;
+      const zoomOut = $("#zoomOut");
+      const zoomIn = $("#zoomIn");
+      const zoomLevelEl = $("#zoomLevel");
+      const fsToggle = $("#fsToggle");
+
+      // Zoom functions
+      function setZoom(level) {
+        zoomLevel = Math.max(50, Math.min(200, level)); // Limit between 50% and 200%
+        document.body.style.zoom = zoomLevel + "%";
+        zoomLevelEl.textContent = zoomLevel + "%";
+      }
+
+      zoomOut.addEventListener("click", () => setZoom(zoomLevel - 10));
+      zoomIn.addEventListener("click", () => setZoom(zoomLevel + 10));
+
+      // Fullscreen toggle
+      fsToggle.addEventListener("click", () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.error(`Fullscreen error: ${err.message}`);
+          });
+        }
+      });
+      const ls = {
+        get(k, d = null) {
+          try {
+            const v = localStorage.getItem(k);
+            return v === null ? d : v;
+          } catch {
+            return d;
+          }
+        },
+        set(k, v) {
+          try {
+            localStorage.setItem(k, v);
+          } catch {}
+        },
+      };
+
+      function showToast(msg, ms = 2200) {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => t.classList.remove("show"), ms);
+      }
+
+      /**
+       * ANSI/SGR Terminal Renderer
+       * Implements a lightweight ANSI escape sequence parser and renderer
+       * that converts terminal output with ANSI codes to HTML elements.
+       */
+
+      /**
+       * Fixed ANSI terminal settings
+       * - ANSI rendering always enabled
+       * - Ubuntu Mono font with fallbacks
+       * - Tango Dark color palette
+       * - Bold formatting doesn't change brightness (bold ≠ bright)
+       * - Performance optimized with batching and buffer limits
+       */ /**
+       * Parse ANSI/SGR escape sequences and convert to HTML elements
+       * ANSI rendering is always active - no mode switching
+       * @param {string} text - Raw text with ANSI escape sequences
+       * @returns {DocumentFragment} Parsed output as DOM fragment
+       */
+      function parseAnsi(text) {
+        const fragment = document.createDocumentFragment();
+        const ESCAPE = "\x1b";
+        const ESC_PATTERN = new RegExp(`${ESCAPE}\\[(\\d+(?:;\\d+)*)m`, "g");
+
+        // Current styling state
+        let currentSpan = document.createElement("span");
+        currentSpan.className = "ansi";
+        let bold = false;
+        let italic = false;
+        let underline = false;
+        let strike = false;
+        let fgColor = null;
+        let bgColor = null;
+
+        // Create a new span with current styling
+        function createStyledSpan() {
+          const span = document.createElement("span");
+          const classes = ["ansi"];
+
+          if (bold) classes.push("bold");
+          if (italic) classes.push("italic");
+          if (underline) classes.push("underline");
+          if (strike) classes.push("strike");
+          if (fgColor !== null) classes.push(`fg-${fgColor}`);
+          if (bgColor !== null) classes.push(`bg-${bgColor}`);
+
+          span.className = classes.join(" ");
+          return span;
+        }
+
+        // Process a single SGR code or code sequence
+        function processSgrCodes(codes) {
+          const codeArray = codes.split(";").map((c) => parseInt(c, 10));
+
+          for (let i = 0; i < codeArray.length; i++) {
+            const code = codeArray[i];
+
+            // Text formatting
+            if (code === 0) {
+              // Reset
+              bold = italic = underline = strike = false;
+              fgColor = bgColor = null;
+            } else if (code === 1) bold = true;
+            else if (code === 3) italic = true;
+            else if (code === 4) underline = true;
+            else if (code === 9) strike = true;
+            else if (code === 22) bold = false;
+            else if (code === 23) italic = false;
+            else if (code === 24) underline = false;
+            else if (code === 29) strike = false;
+            // Standard foreground colors
+            else if (code >= 30 && code <= 37) {
+              fgColor = code - 30;
+            }
+            // Standard background colors
+            else if (code >= 40 && code <= 47) {
+              bgColor = code - 40;
+            }
+            // Bright foreground colors
+            else if (code >= 90 && code <= 97) {
+              fgColor = code - 90 + 8;
+            }
+            // Bright background colors
+            else if (code >= 100 && code <= 107) {
+              bgColor = code - 100 + 8;
+            }
+            // 256 colors and RGB colors
+            else if ((code === 38 || code === 48) && i + 1 < codeArray.length) {
+              const colorType = codeArray[i + 1];
+              const target = code === 38 ? "fg" : "bg";
+
+              // 256-color mode: 38;5;n or 48;5;n
+              if (colorType === 5 && i + 2 < codeArray.length) {
+                const colorIndex = codeArray[i + 2];
+
+                // Map to our 16-color palette for base colors
+                if (colorIndex < 16) {
+                  if (target === "fg") fgColor = colorIndex;
+                  else bgColor = colorIndex;
+                } else {
+                  // For extended colors, we'll use inline RGB style
+                  // Convert 256-color index to RGB
+                  let rgb;
+                  if (colorIndex < 232) {
+                    // 6x6x6 color cube (16-231)
+                    const index = colorIndex - 16;
+                    const r = Math.floor(index / 36) * 51;
+                    const g = Math.floor((index % 36) / 6) * 51;
+                    const b = (index % 6) * 51;
+                    rgb = `rgb(${r},${g},${b})`;
+                  } else {
+                    // Grayscale (232-255)
+                    const gray = (colorIndex - 232) * 10 + 8;
+                    rgb = `rgb(${gray},${gray},${gray})`;
+                  }
+
+                  // Set inline style instead of class
+                  if (target === "fg") {
+                    fgColor = `custom`;
+                    currentSpan.style.color = rgb;
+                  } else {
+                    bgColor = `custom`;
+                    currentSpan.style.backgroundColor = rgb;
+                  }
+                }
+
+                i += 2; // Skip the next two parameters
+              }
+              // True color RGB mode: 38;2;r;g;b or 48;2;r;g;b
+              else if (colorType === 2 && i + 4 < codeArray.length) {
+                const r = codeArray[i + 2];
+                const g = codeArray[i + 3];
+                const b = codeArray[i + 4];
+                const rgb = `rgb(${r},${g},${b})`;
+
+                if (target === "fg") {
+                  fgColor = `custom`;
+                  currentSpan.style.color = rgb;
+                } else {
+                  bgColor = `custom`;
+                  currentSpan.style.backgroundColor = rgb;
+                }
+
+                i += 4; // Skip the next four parameters
+              } else {
+                i += 1; // Skip just the color type if format is unknown
+              }
+            }
+          }
+        }
+
+        // Split text by escape sequences
+        let lastIndex = 0;
+        let match;
+        let pendingText = "";
+        let segments = [];
+
+        // Pre-process carriage returns (\r) before parsing ANSI
+        // This handles progress bar updates
+        const lines = [];
+        let currentLine = "";
+
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+
+          if (char === "\r") {
+            // Carriage return - move back to start of line
+            currentLine = "";
+          } else if (char === "\n") {
+            // Newline - add current line and start a new one
+            lines.push(currentLine);
+            currentLine = "";
+          } else if (char === "\b") {
+            // Backspace - remove last character
+            currentLine = currentLine.slice(0, -1);
+          } else {
+            // Append character to current line
+            currentLine += char;
+          }
+        }
+
+        // Add the final line if not empty
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+
+        // Reconstruct text with proper newlines
+        const processedText = lines.join("\n");
+
+        // Now parse ANSI sequences
+        while ((match = ESC_PATTERN.exec(processedText)) !== null) {
+          const plainText = processedText.substring(lastIndex, match.index);
+          if (plainText) {
+            if (currentSpan.childNodes.length === 0) {
+              currentSpan.appendChild(document.createTextNode(plainText));
+              fragment.appendChild(currentSpan);
+            } else {
+              currentSpan.appendChild(document.createTextNode(plainText));
+            }
+          }
+
+          // Process the SGR codes
+          processSgrCodes(match[1]);
+
+          // Create a new span with the updated styles
+          currentSpan = createStyledSpan();
+
+          lastIndex = match.index + match[0].length;
+        }
+
+        // Add any remaining text after the last escape sequence
+        if (lastIndex < processedText.length) {
+          const remainingText = processedText.substring(lastIndex);
+          currentSpan.appendChild(document.createTextNode(remainingText));
+          fragment.appendChild(currentSpan);
+        }
+
+        return fragment;
+      }
+
+      /**
+       * Copy raw text (without ANSI codes) to clipboard
+       * @param {string} containerId - Container ID
+       */
+
+      /**
+       * Add terminal controls (just copy button) to a tile
+       * @param {HTMLElement} tileEl - The tile element
+       * @param {string} containerId - Container ID
+       */
+
+      /**
+       * Applies syntax highlighting to a chunk of log text on the client-side.
+       * It uses regular expressions to find common patterns (keywords, IPs, numbers)
+       * and wraps them in ANSI escape codes for coloring in the xterm.js terminal.
+       * This happens entirely in the frontend without backend changes.
+       * @param {string} text - The raw text chunk from the server.
+       * @returns {string} The text with embedded ANSI color codes.
+       */
+      function colorizeLogChunk(text) {
+        // Matte ANSI palette (maps to the Gruvbox theme set in xterm)
+        const C = {
+          RESET: "\x1b[0m",
+          RED: "\x1b[31m",
+          GREEN: "\x1b[32m",
+          YELLOW: "\x1b[33m",
+          BLUE: "\x1b[34m",
+          MAGENTA: "\x1b[35m",
+          CYAN: "\x1b[36m",
+          MUTED: "\x1b[90m",
+        };
+
+        const colorize = (color, content) => `${color}${content}${C.RESET}`;
+
+        // Process line-by-line so we can keep existing ANSI intact
+        return text
+          .split("\n")
+          .map((line) => {
+            const hasAnsi = line.includes("\x1b[");
+            let out = line;
+
+            // Always-safe generic accents (even if ANSI present)
+            // Highlight sizes like 12.3 MB, 456 kB
+            out = out.replace(/(\b\d+(?:\.\d+)?\s?(?:B|kB|MB|GB)\b)/g, (m) =>
+              colorize(C.YELLOW, m)
+            );
+
+            if (!hasAnsi) {
+              // apt/apt-get and common system logs
+              out = out.replace(/^\s*Hit:(?=\s)/, (m) => colorize(C.CYAN, m));
+              out = out.replace(/^\s*Get:(?=\s)/, (m) => colorize(C.BLUE, m));
+              out = out.replace(/^\s*Ign:(?=\s)/, (m) => colorize(C.MUTED, m));
+              out = out.replace(/^\s*Err:(?=\s)/, (m) => colorize(C.RED, m));
+              out = out.replace(/^\s*Fetched\b/, (m) => colorize(C.GREEN, m));
+              out = out.replace(
+                /^\s*(Reading package lists\.*|Building dependency tree\.*|Reading state information\.*)/,
+                (m) => colorize(C.MUTED, m)
+              );
+              out = out.replace(
+                /(All packages are up to date\.|\bDone\b)/g,
+                (m) => colorize(C.GREEN, m)
+              );
+              // Upgrade summary line
+              out = out.replace(/(\b\d+\b)(?=\s+upgraded)/i, (m) =>
+                colorize(C.GREEN, m)
+              );
+              out = out.replace(/(\b\d+\b)(?=\s+newly installed)/i, (m) =>
+                colorize(C.BLUE, m)
+              );
+              out = out.replace(/(\b\d+\b)(?=\s+to remove)/i, (m) =>
+                colorize(C.RED, m)
+              );
+              out = out.replace(/(\b\d+\b)(?=\s+not upgraded)/i, (m) =>
+                colorize(C.MUTED, m)
+              );
+              // Package name before version in parentheses: pkg (1.2.3)
+              out = out.replace(
+                /\b([a-z0-9][a-z0-9+.-]*)(?=\s*\(.*?\))/gi,
+                (m) => colorize(C.MAGENTA, m)
+              );
+              // URLs muted cyan
+              out = out.replace(/(https?:\/\/[^\s]+)/g, (m) =>
+                colorize(C.CYAN, m)
+              );
+              // Errors and warnings
+              out = out.replace(
+                /\b(error|failed|failure|exception|unauthorized|denied)\b/gi,
+                (m) => colorize(C.RED, m)
+              );
+              out = out.replace(/\b(warn|warning)\b/gi, (m) =>
+                colorize(C.YELLOW, m)
+              );
+              out = out.replace(
+                /\b(success|ok|ready|complete|successful)\b/gi,
+                (m) => colorize(C.GREEN, m)
+              );
+              // Dim timestamps
+              out = out.replace(
+                /\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\b/g,
+                (m) => colorize(C.MUTED, m)
+              );
+            }
+            return out;
+          })
+          .join("\n");
+      }
+
+      function getTerminalTheme() {
+        // Fixed Tango Dark theme for xterm.js
+        return {
+          background: "#2e3436", // Tango Black
+          foreground: "#d3d7cf", // Tango White
+          cursor: "#d3d7cf",
+          selection: "rgba(211, 215, 207, 0.3)",
+
+          // Standard colors (0-7)
+          black: "#2e3436",
+          red: "#cc0000",
+          green: "#4e9a06",
+          yellow: "#c4a000",
+          blue: "#3465a4",
+          magenta: "#75507b",
+          cyan: "#06989a",
+          white: "#d3d7cf",
+
+          // Bright colors (8-15)
+          brightBlack: "#555753",
+          brightRed: "#ef2929",
+          brightGreen: "#8ae234",
+          brightYellow: "#fce94f",
+          brightBlue: "#729fcf",
+          brightMagenta: "#ad7fa8",
+          brightCyan: "#34e2e2",
+          brightWhite: "#eeeeec",
+        };
+      }
+
+      function humanStatus(s) {
+        // map Docker-ish status to badges
+        const m = (s || "unknown").toLowerCase();
+        if (m === "running") return ["running", "r"];
+        if (m === "paused") return ["paused", "p"];
+        if (m === "exited") return ["exited", "s"];
+        if (m === "created") return ["created", "s"];
+        if (m === "restarting") return ["restarting", "p"];
+        return ["unknown", "s"];
+      }
+
+      function inferAPIBase() {
+        // Priority 1: explicit ?api=... (absolute or relative)
+        const ap = qs("api");
+        if (ap) return ap.replace(/\/+$/, ""); // remove trailing slash
+        // Priority 2: same-origin when http(s)
+        if (location.protocol.startsWith("http")) return "";
+        // Fallback: demo/offline
+        return null;
+      }
+
+      function wsURL(apiBase, containerId, cols, rows) {
+        // Build WS URL for /api/containers/{id}/exec
+        const path = `/api/containers/${encodeURIComponent(
+          containerId
+        )}/exec?cols=${cols}&rows=${rows}&term=xterm-256color`;
+        if (apiBase === null) {
+          return null;
+        }
+        const isAbs = /^https?:\/\//i.test(apiBase || "");
+        if (isAbs) {
+          const u = new URL(apiBase);
+          const proto = u.protocol === "https:" ? "wss:" : "ws:";
+          return `${proto}//${u.host}${path}`;
+          // Note: if user passes /api-full base, still OK because we always append /api/... fixed.
+        } else {
+          const proto = location.protocol === "https:" ? "wss:" : "ws:";
+          return `${proto}//${location.host}${path}`;
+        }
+      }
+
+      // Demo data to keep file:// happy
+      const DEMO = {
+        containers: [
+          {
+            id: "demo-u1",
+            name: "u1",
+            image: "ubuntu:24.04",
+            status: "running",
+            labels: {},
+            ports: [],
+          },
+          {
+            id: "demo-u2",
+            name: "u2",
+            image: "ubuntu:24.04",
+            status: "exited",
+            labels: {},
+            ports: [],
+          },
+          {
+            id: "demo-alpine",
+            name: "alpine",
+            image: "alpine:3.20",
+            status: "running",
+            labels: {},
+            ports: [],
+          },
+        ],
+      };
+
+      const API_BASE = inferAPIBase();
+      const OFFLINE = API_BASE === null;
+      const modeHint = $("#modeHint");
+      modeHint.textContent = OFFLINE
+        ? "Demo/Offline – backend not connected."
+        : "Live – connected to backend.";
+
+      // ------------------------------ Data fetching ------------------------------
+      async function fetchJSON(url, opts) {
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+          const text = await res
+            .text()
+            .catch(() => `${res.status} ${res.statusText}`);
+          throw new Error(text || `${res.status} ${res.statusText}`);
+        }
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) return res.json();
+        return res.text();
+      }
+
+      function normalizeList(payload) {
+        // Accept either [{...}] or {containers:[...]}
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.containers)
+          ? payload.containers
+          : [];
+        return list.map((c) => ({
+          id: c.id || c.ID || "",
+          name: (c.name || c.Names || "").replace(/^\//, ""),
+          image: c.image || c.Image || "",
+          status: c.status || c.State || "unknown",
+          labels: c.labels || c.Labels || {},
+          ports: c.ports || c.Ports || [],
+        }));
+      }
+
+      function filterOutSystem(list) {
+        return list.filter((c) => {
+          const name = (c.name || "").toLowerCase();
+          const image = (c.image || "").toLowerCase();
+          const labs = c.labels || {};
+          const proj = (labs["com.docker.compose.project"] || "").toLowerCase();
+          const svc = (labs["com.docker.compose.service"] || "").toLowerCase();
+          // 1) explicit opt-out label
+          if ((labs["grid.system"] || "").toString().toLowerCase() === "true")
+            return false;
+          // 2) our own stack (compose or image)
+          if (name === "terminogrid" || name.startsWith("terminogrid-"))
+            return false;
+          if (svc === "terminogrid") return false;
+          if (proj.includes("terminogrid")) return false;
+          if (image.includes("terminogrid-backend")) return false;
+          // 3) buildkit helper containers
+          if (name.startsWith("buildx_buildkit") || image.includes("buildkit"))
+            return false;
+          return true;
+        });
+      }
+
+      async function apiList() {
+        if (OFFLINE) return DEMO.containers;
+        const url = API_BASE ? `${API_BASE}/api/containers` : `/api/containers`;
+        const data = await fetchJSON(url, { cache: "no-store" });
+        let list = normalizeList(data);
+        list = filterOutSystem(list);
+        // sort: running first, then alpha
+        list.sort((a, b) =>
+          (a.status === "running") === (b.status === "running")
+            ? a.name.localeCompare(b.name)
+            : a.status === "running"
+            ? -1
+            : 1
+        );
+        return list;
+      }
+      async function apiStart(id) {
+        if (OFFLINE) throw new Error("Demo mode");
+        const url = API_BASE
+          ? `${API_BASE}/api/containers/${id}/start`
+          : `/api/containers/${id}/start`;
+        const res = await fetch(url, { method: "POST" });
+        if (!res.ok && res.status !== 204)
+          throw new Error(`${res.status} ${res.statusText}`);
+      }
+      async function apiStop(id) {
+        if (OFFLINE) throw new Error("Demo mode");
+        const url = API_BASE
+          ? `${API_BASE}/api/containers/${id}/stop`
+          : `/api/containers/${id}/stop`;
+        const res = await fetch(url, { method: "POST" });
+        if (!res.ok && res.status !== 204)
+          throw new Error(`${res.status} ${res.statusText}`);
+      }
+
+      // ------------------------------ Rendering ------------------------------
+      const elList = $("#list");
+      const elGrid = $("#grid");
+      const elCount = $("#counter");
+      // Fixed refresh – no UI controls
+      const TILES = new Set(); // track containers with a grid tile
+
+      function updateShellButtons() {
+        for (const row of elList.querySelectorAll(".row")) {
+          const id = row.getAttribute("data-id");
+          const badge = row.querySelector(".badge");
+          const isRunning = (badge?.textContent || "").trim() === "running";
+          const btn = row.querySelector('button[data-act="shell"]');
+          if (btn) btn.disabled = OFFLINE || !isRunning || TILES.has(id);
+          const tbtn = row.querySelector('button[data-act="tile"]');
+          if (tbtn) tbtn.disabled = TILES.has(id);
+        }
+      }
+
+      function renderList(containers) {
+        elList.innerHTML = "";
+        elCount.textContent = `${containers.length} visible`;
+        if (!containers.length) {
+          elList.innerHTML = `<div class="row"><div class="meta">No containers found (or filtered).</div></div>`;
+          return;
+        }
+        for (const c of containers) {
+          const [label, cls] = humanStatus(c.status);
+          const row = document.createElement("div");
+          row.className = "row";
+          row.setAttribute("data-id", c.id);
+          row.innerHTML = `
+            <div class="top">
+              <div>
+                <span class="name">${c.name}</span>
+                <span class="badge ${cls}">${label}</span>
+              </div>
+              <div class="img">${c.image || ""}</div>
+            </div>
+            <div class="actions">
+              <button class="btn" data-act="tile" ${
+                TILES.has(c.id) || label !== "running" ? "disabled" : ""
+              }>+ Tile</button>
+              <button class="btn primary" data-act="start" ${
+                label === "running" ? "disabled" : ""
+              }>Start</button>
+              <button class="btn" data-act="shell" ${
+                !OFFLINE && label === "running" && !TILES.has(c.id)
+                  ? ""
+                  : "disabled"
+              }>Shell</button>
+              <button class="btn" data-act="stop" ${
+                label === "running" ? "" : "disabled"
+              }>Stop</button>
+            </div>
+            <div class="meta">${formatPorts(c.ports)}</div>
+          `;
+          row.addEventListener("click", async (ev) => {
+            const btn = ev.target.closest("button.btn");
+            if (!btn) return;
+            const act = btn.dataset.act;
+            try {
+              if (act === "tile") {
+                if (label !== "running") {
+                  showToast("Container not running");
+                  return;
+                }
+                addTile(c);
+                return;
+              }
+              btn.disabled = true;
+              if (act === "start") {
+                await apiStart(c.id);
+                showToast(`"${c.name}" started`);
+                await refresh();
+              }
+              if (act === "stop") {
+                await apiStop(c.id);
+                showToast(`"${c.name}" stopped`);
+                await refresh();
+              }
+              if (act === "shell") {
+                openShell(c);
+              }
+            } catch (e) {
+              showToast(`Action failed: ${e.message || e}`);
+            } finally {
+              if (act !== "tile") btn.disabled = false;
+            }
+          });
+          elList.appendChild(row);
+        }
+        updateShellButtons();
+      }
+
+      function formatPorts(ports) {
+        // Accept array of objects or Docker "Ports" dict-like; try to format simply
+        if (!ports) return "";
+        if (Array.isArray(ports)) {
+          const items = ports
+            .map((p) => {
+              const t = (p.type || p.Type || "").toLowerCase() || "tcp";
+              const pub = p.public || p.PublicPort;
+              const priv = p.private || p.PrivatePort;
+              if (pub && priv) return `:${pub}→${priv}/${t}`;
+              if (priv) return `:${priv}/${t}`;
+              return "";
+            })
+            .filter(Boolean);
+          return items.length ? `Ports: ${items.join(", ")}` : "";
+        }
+        // object map (NetworkSettings.Ports)
+        const out = [];
+        for (const [k, arr] of Object.entries(ports || {})) {
+          if (!arr || !arr.length) continue;
+          for (const m of arr) {
+            out.push(`${m.HostIp || ""}:${m.HostPort || ""}→${k}`);
+          }
+        }
+        return out.length ? `Ports: ${out.join(", ")}` : "";
+      }
+
+      function addTile(c) {
+        if ((c.status || "").toLowerCase() !== "running") {
+          showToast("Container not running");
+          return;
+        }
+        if (elGrid.querySelector(`.tile[data-id="${c.id}"]`)) {
+          showToast("Tile already exists");
+          return;
+        }
+        const tile = document.createElement("section");
+        tile.className = "tile";
+        tile.dataset.id = c.id;
+        tile.innerHTML = `
+        <div class="tile-head">
+          <div style="display:flex; align-items:center; gap:var(--spacing-sm);">
+            <div class="x" data-act="fs" title="Toggle fullscreen">⛶</div>
+            <h5><span class="dot-s ${
+              c.status === "running" ? "ok" : "bad"
+            }"></span>${c.name} <span class="muted">· ${
+          c.image || ""
+        }</span></h5>
+          </div>
+          <div class="x" data-act="close" title="Close tile">✕</div>
+        </div>
+        <div class="tile-body">
+          <p style="margin-top:0;"><strong>Status:</strong> <span class="status">${
+            c.status
+          }</span></p>
+          <div class="tile-term-host"></div>
+        </div>
+      `;
+        const head = tile.querySelector(".tile-head");
+        const tileHost = tile.querySelector(".tile-term-host");
+
+        // Always mount/keep session for running containers
+        if (c.status === "running") openShell(c, tileHost);
+        // Mark presence and disable sidebar shell for this container
+        TILES.add(c.id);
+        updateShellButtons();
+        head.addEventListener("dblclick", () => {
+          tile.classList.toggle("fullscreen");
+        });
+        head.querySelector('[data-act="fs"]').addEventListener("click", (e) => {
+          e.stopPropagation();
+          tile.classList.toggle("fullscreen");
+        });
+        head
+          .querySelector('[data-act="close"]')
+          .addEventListener("click", () => {
+            tile.remove();
+            TILES.delete(c.id);
+            updateShellButtons();
+          });
+        tile.update = (nc) => {
+          tile.querySelector(".status").textContent = nc.status;
+          tile.querySelector(".dot-s").className =
+            "dot-s " + (nc.status === "running" ? "ok" : "bad");
+          head.querySelector("h5").innerHTML = `<h5><span class="dot-s ${
+            nc.status === "running" ? "ok" : "bad"
+          }"></span>${nc.name} <span class="muted">· ${nc.image || ""}</span>`;
+        };
+        elGrid.prepend(tile);
+        setGridCols();
+        return tile;
+      }
+
+      function updateTiles(liveList) {
+        for (const tile of elGrid.querySelectorAll(".tile")) {
+          const id = tile.dataset.id;
+          const c = liveList.find((x) => x.id === id);
+          if (c && tile.update) tile.update(c);
+          if (!c) {
+            tile.remove();
+            TILES.delete(id);
+            updateShellButtons();
+          }
+        }
+        setGridCols();
+      }
+
+      // ------------------------------ Shell (WS bridge) ------------------------------
+      const shell = $("#shell"),
+        termHost = $("#termHost");
+      const btnCloseShell = $("#btnCloseShell");
+
+      // Sessions: per container
+      const SESS = new Map(); // id -> {term, fit, ws, mount, name}
+      let FOCUS_ID = null; // session currently shown in modal
+
+      function termAppend(text) {
+        const s = FOCUS_ID && SESS.get(FOCUS_ID);
+        if (s && s.term) s.term.write(text);
+      }
+
+      function shellColsRows() {
+        const s = FOCUS_ID && SESS.get(FOCUS_ID);
+        return s && s.term
+          ? { cols: s.term.cols, rows: s.term.rows }
+          : { cols: 120, rows: 32 };
+      }
+
+      function sendResize(id = FOCUS_ID) {
+        const s = id && SESS.get(id);
+        if (!s || !s.ws || s.ws.readyState !== 1 || !s.term) return;
+        try {
+          s.ws.send(
+            JSON.stringify({
+              type: "resize",
+              cols: s.term.cols,
+              rows: s.term.rows,
+            })
+          );
+        } catch {}
+      }
+
+      function openShell(c, mountEl) {
+        if (OFFLINE) {
+          showToast("Demo/Offline – shell not available");
+          return;
+        }
+        // do not close existing sessions; keep them alive
+
+        // Modal vs. tile
+        const inModal = !mountEl || mountEl === termHost;
+        mountEl = mountEl || termHost;
+        if (inModal) {
+          $("#shellTitle").textContent = `Shell · ${c.name}`;
+
+          // Remove copy controls: do not render any extra buttons in the modal bar
+
+          shell.classList.add("open");
+        }
+
+        // Ensure xterm libs are available
+        if (typeof window.Terminal !== "function" || !window.FitAddon) {
+          showToast("xterm.js konnte nicht geladen werden");
+          if (inModal) closeShell();
+          return;
+        }
+
+        // If session exists, just re-mount
+        let sess = SESS.get(c.id);
+        if (sess && sess.term && sess.ws && sess.ws.readyState <= 1) {
+          mountEl.innerHTML = "";
+          if (sess.term.element) mountEl.appendChild(sess.term.element);
+          sess.mount = mountEl;
+          setTimeout(() => {
+            sess.fit.fit();
+            sess.term.focus();
+            sendResize(c.id);
+          }, 0);
+          if (inModal) FOCUS_ID = c.id;
+          return;
+        }
+
+        // Ensure xterm libs are available
+        if (typeof window.Terminal !== "function" || !window.FitAddon) {
+          showToast("xterm.js konnte nicht geladen werden");
+          if (inModal) closeShell();
+          return;
+        }
+
+        // Create new session
+        mountEl.innerHTML = "";
+        const term = new Terminal({
+          convertEol: true,
+          cursorBlink: true,
+          disableStdin: false,
+          scrollback: 5000,
+          fontFamily:
+            "'JetBrains Mono','Ubuntu Mono','Fira Code','DejaVu Sans Mono',monospace",
+          fontSize: 19, // groß genug für lange Sitzungen
+          lineHeight: 1.25, // etwas mehr Zeilenabstand
+          letterSpacing: 0,
+          fontWeight: "800", // dicker Grundtext
+          fontWeightBold: "900", // noch etwas kräftiger bei Bold
+          drawBoldTextInBrightColors: false, // Bold NICHT greller einfärben
+          allowTransparency: false,
+          theme: {
+            background: "#1d2021",
+            foreground: "#d5c4a1", // weniger hell als Standard-Cream
+            cursor: "#d5c4a1",
+            selection: "#3c3836",
+            black: "#1d2021",
+            red: "#cc241d",
+            green: "#98971a",
+            yellow: "#d79921",
+            blue: "#458588",
+            magenta: "#b16286",
+            cyan: "#689d6a",
+            white: "#d5c4a1",
+            brightBlack: "#928374",
+            brightRed: "#fb4934",
+            brightGreen: "#b8bb26",
+            brightYellow: "#fabd2f",
+            brightBlue: "#83a598",
+            brightMagenta: "#d3869b",
+            brightCyan: "#8ec07c",
+            brightWhite: "#ebdbb2",
+          },
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(mountEl);
+        term.writeln("\x1b[90m[connecting…]\x1b[0m");
+
+        // Fit addon direkt nach dem Open ausführen
+        fitAddon.fit();
+        term.focus();
+
+        // Auto-Resize ohne Flackern mit ResizeObserver
+        let raf = null;
+        const ro = new ResizeObserver(() => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => fitAddon.fit());
+        });
+        ro.observe(mountEl);
+
+        const { cols, rows } = {
+          cols: term.cols || 120,
+          rows: term.rows || 32,
+        };
+        const url = wsURL(API_BASE, c.id, cols, rows);
+        if (!url) {
+          showToast("Invalid WS URL");
+          return;
+        }
+        const w = new WebSocket(url);
+        w.binaryType = "arraybuffer";
+
+        term.onData((d) => {
+          if (w.readyState === 1) w.send(d);
+        });
+        w.onopen = () => {
+          term.writeln("\x1b[90m[connected]\x1b[0m");
+          sendResize(c.id);
+        };
+        // Store raw buffer data for output processing
+        let outputBuffer = "";
+        let outputTimer = null;
+        const BUFFER_LIMIT = 5000; // Max lines to keep
+        const BUFFER_SIZE_LIMIT = 4 * 1024 * 1024; // ~4MB buffer limit
+
+        // Batch updates for improved performance
+        function flushOutput() {
+          if (!outputBuffer) return;
+
+          // Apply context-aware, matte color accents before writing.
+          const processed = colorizeLogChunk(outputBuffer);
+          term.write(processed);
+          outputBuffer = "";
+        }
+
+        // Handle incoming WebSocket messages
+        w.onmessage = (ev) => {
+          let rawText;
+
+          if (ev.data instanceof ArrayBuffer) {
+            // Binary data - decode as UTF-8
+            rawText = new TextDecoder("utf-8").decode(ev.data);
+          } else {
+            // Text data
+            rawText = String(ev.data);
+          }
+
+          // Add to buffer
+          outputBuffer += rawText;
+
+          // Ensure buffer doesn't get too large (prevent memory issues)
+          if (outputBuffer.length > BUFFER_SIZE_LIMIT) {
+            // Truncate to last N lines
+            const lines = outputBuffer.split("\n");
+            if (lines.length > BUFFER_LIMIT) {
+              outputBuffer = lines.slice(-BUFFER_LIMIT).join("\n");
+            }
+          }
+
+          // Batch updates with debounce (16-32ms is a good balance for smoothness)
+          clearTimeout(outputTimer);
+          outputTimer = setTimeout(flushOutput, 16);
+        };
+        w.onclose = (ev) => {
+          term.write(
+            `\r\n[connection closed${ev.code ? " " + ev.code : ""}]\r\n`
+          );
+          SESS.delete(c.id);
+        };
+        w.onerror = () => {
+          term.write(`\r\n[websocket error]\r\n`);
+        };
+
+        mountEl.addEventListener("mousedown", () => term && term.focus());
+        if (typeof ResizeObserver === "function") {
+          new ResizeObserver(() => {
+            fitAddon.fit();
+            sendResize(c.id);
+          }).observe(mountEl);
+        }
+        window.addEventListener("resize", () => {
+          fitAddon.fit();
+          sendResize(c.id);
+        });
+
+        sess = { term, fitAddon, ws: w, mount: mountEl, name: c.name };
+        SESS.set(c.id, sess);
+        if (inModal) FOCUS_ID = c.id;
+      }
+
+      function closeShell() {
+        shell.classList.remove("open");
+        FOCUS_ID = null; // keep session alive
+        if (termHost) termHost.innerHTML = "";
+      }
+
+      // xterm handles typing/focus
+      btnCloseShell.addEventListener("click", closeShell);
+      window.addEventListener("resize", () => {
+        if (shell.classList.contains("open")) sendResize();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (shell.classList.contains("open") && e.key === "Escape") {
+          closeShell();
+        }
+      });
+
+      // ------------------------------ Refresh loop ------------------------------
+      let REFRESH_MS = 5000; // fixed 5s refresh
+      let timer = null;
+      async function refresh() {
+        try {
+          const data = await apiList();
+          renderList(data);
+          updateTiles(data);
+          if (!OFFLINE) modeHint.textContent = "Live – connected to backend.";
+        } catch (e) {
+          modeHint.textContent =
+            "Backend unavailable (is Docker socket mounted?).";
+          modeHint.classList.add("warn");
+        }
+      }
+      function startLoop() {
+        stopLoop();
+        if (REFRESH_MS > 0) timer = setInterval(refresh, REFRESH_MS);
+      }
+      function stopLoop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+      }
+
+      // No reload modal or control; interval is fixed
+
+      // Initial load
+      (async () => {
+        // ANSI rendering is always active - no localStorage needed
+        await refresh();
+        startLoop();
+      })();
+
+      // Consistent grid columns across browsers
+      const MIN_TILE_W = 720; // px
+      const GAP = 12; // must match .grid gap
+      function setGridCols() {
+        const rectW = elGrid.getBoundingClientRect().width || 0;
+        const cs = getComputedStyle(elGrid);
+        const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const inner = Math.max(0, rectW - pad);
+        if (!inner) return;
+        let cols = Math.floor((inner + GAP) / (MIN_TILE_W + GAP));
+        if (cols < 1) cols = 1;
+        elGrid.style.setProperty("--cols", String(cols));
+      }
+      new ResizeObserver(setGridCols).observe(elGrid);
+      window.addEventListener("resize", setGridCols);
+      setGridCols();
+
+      // Standard browser reload warning when sessions are active
+      window.addEventListener("beforeunload", (e) => {
+        const hasSessions = SESS.size > 0 || TILES.size > 0;
+        if (hasSessions) {
+          e.preventDefault();
+          // Standard message (browsers show their own wording anyway)
+          e.returnValue =
+            "Active sessions will be lost if you leave the page. Are you sure?";
+          return e.returnValue;
+        }
+      });
+    </script>
+  </body>
+</html>
