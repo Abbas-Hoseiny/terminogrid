@@ -17,25 +17,25 @@ Lightweight Docker web UI: manage containers, 1-click start/stop, unlimited term
 ## Screenshots
 
 ### 🖥️ Overview
-![Overview](docs/screenshots/overview.png)
+![Overview](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/overview.png)
 
 ### 🗂️ Grid View
-![Grid View](docs/screenshots/overview-grid.png)
+![Grid View](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/overview-grid.png)
 
 ### 🍎 macOS Example
-![macOS](docs/screenshots/macOS.png)
+![macOS](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/macOS.png)
 
 ### 🪟 Windows Example
-![Windows](docs/screenshots/windows.png)
+![Windows](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/windows.png)
 
 ### ➕ Demo Views
-![Demo](docs/screenshots/demo.png)
-![Demo1](docs/screenshots/demo1.png)
-![Demo2](docs/screenshots/demo2.png)
-![Demo3](docs/screenshots/demo3.png)
+![Demo](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/demo.png)
+![Demo1](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/demo1.png)
+![Demo2](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/demo2.png)
+![Demo3](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/demo3.png)
 
 ### ⬜ Empty Grid Mode
-![Empty Grid](docs/screenshots/empty-grid.png)
+![Empty Grid](https://raw.githubusercontent.com/Abbas-Hoseiny/terminogrid/main/docs/screenshots/empty-grid.png)
 
 ---
 
